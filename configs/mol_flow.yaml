@@ -1,0 +1,33 @@
+# SE(3)-equivariant flow-matching 3D molecule generator (real training).
+#
+# ~1-2M params at these settings -> fits a 6GB GPU comfortably. Point
+# data.sdf_path at an SDF file with 3D conformers (e.g. QM9) to train on real
+# molecules; RDKit is required for SDF loading and validity metrics.
+#
+#   pip install rdkit
+#   denovo-mol train    -c configs/mol_flow.yaml
+#   denovo-mol sample   -c configs/mol_flow.yaml -n 1000 -o generated/mols
+#
+# For a quick, dependency-free trial use dataset: toy.
+data:
+  dataset: sdf            # 'toy' for offline trial, 'sdf' for real molecules
+  sdf_path: data/qm9.sdf  # replace with your SDF (3D conformers)
+  max_atoms: 32
+
+model:
+  hidden: 128
+  n_layers: 4
+
+train:
+  output_dir: outputs/mol_flow
+  epochs: 200
+  batch_size: 32
+  lr: 0.0005
+  grad_clip: 1.0
+  log_every: 50
+  fp16: true
+
+sample:
+  n_samples: 1000
+  n_steps: 100
+  batch_size: 100

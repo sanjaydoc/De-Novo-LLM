@@ -31,6 +31,7 @@ dev = ["pytest>=7.0"]
 
 [project.scripts]
 denovo = "denovo.cli:main"
+denovo-mol = "denovo.structure.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

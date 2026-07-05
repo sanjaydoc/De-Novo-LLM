@@ -14,10 +14,17 @@
 **Author:** Dr. Sanjay Anbu · **Website:** https://sanjaydoc.github.io/De-Novo-LLM/ ·
 **Run guide:** [RUN.md](RUN.md) · **Model guide:** [docs/MODELS.md](docs/MODELS.md)
 
-Built to run on modest hardware (developed against an **RTX 3000, 6GB VRAM**):
-tiny models fine-tune fully, larger ones via **LoRA / 4-bit QLoRA**. Ships a
-**Bayesian hyperparameter optimizer** (Optuna/TPE) and a **benchmarking +
-figure pipeline** for the project website.
+Built to run on modest hardware (developed against an **RTX 3000, 6GB VRAM**).
+Three complementary tracks:
+
+1. **Sequence generation** — fine-tune pretrained causal LMs (ProGen2 / ESM /
+   ChemGPT) with **LoRA / QLoRA** (`denovo`).
+2. **SE(3)-equivariant 3D structure generation** — an **E(3)-equivariant
+   flow-matching** model (EGNN + conditional flow matching) that invents
+   molecules as 3D atomic point clouds (`denovo-mol`). Equivariance is unit-tested.
+3. **Closed-loop optimization** — a Design–Build–Test–Learn / active-learning
+   backbone (surrogate + Bayesian acquisition + simulated oracle) that steers
+   generation toward a target property (`denovo.closedloop`).
 
 Cross-platform commands (Windows / macOS / Linux) are in **[RUN.md](RUN.md)**.
 
@@ -70,6 +77,27 @@ denovo evaluate -c configs/small_molecule.yaml -i generated/mols.txt
 # ...or all four at once:
 denovo pipeline -c configs/small_molecule.yaml -i data/your_smiles.txt
 ```
+
+### SE(3)-equivariant 3D molecule generation
+
+A from-scratch **E(3)-equivariant flow-matching** generator (EGNN backbone +
+conditional flow matching over atom coordinates & types). The coordinate
+velocity field is rotation/translation-equivariant and the atom-type field is
+invariant — verified empirically (`tests/test_structure.py`) to ~1e-7.
+
+```bash
+# Offline smoke test — trains + samples + evaluates on CPU, no network/RDKit
+denovo-mol pipeline -c configs/mol_flow_smoke.yaml
+
+# Real training on 3D molecules (point data.sdf_path at e.g. QM9); needs RDKit
+pip install rdkit
+denovo-mol train  -c configs/mol_flow.yaml
+denovo-mol sample -c configs/mol_flow.yaml -n 1000 -o generated/mols
+```
+
+Metrics reported: atom stability, molecule stability, validity, uniqueness,
+novelty (EDM-style). At default settings the model is ~1–2M params and fits a
+6GB GPU comfortably.
 
 ### Bayesian hyperparameter optimization
 
@@ -149,19 +177,31 @@ src/denovo/
   train.py          HF Trainer fine-tuning loop
   generate.py       sampling
   evaluate.py       validity / uniqueness / novelty / diversity
+  optimize.py       Bayesian (Optuna/TPE) hyperparameter search
   cli.py            `denovo` command-line entry point
-tests/              unit tests for the modality-agnostic core
+  structure/        SE(3)-equivariant flow-matching 3D generator (`denovo-mol`)
+    egnn.py           E(3)-equivariant GNN backbone
+    flow.py           conditional flow-matching + zero-CoM utilities
+    model.py          velocity field + loss + ODE sampler
+    chem.py           atom vocab, bond inference, stability metrics
+  closedloop/       DBTL / active-learning optimization backbone
+    oracle.py         budgeted noisy simulated experiment
+    surrogate.py      uncertainty-aware models (deep ensemble / GP)
+    acquisition.py    EI / UCB / PI / Thompson + batch selection
+    loop.py           active-learning orchestrator
+tests/              unit tests (core, structure equivariance, closed loop)
 ```
 
 ## Roadmap
 
 - [x] Modular modality registry (molecules / proteins / nucleic acids)
 - [x] Fine-tune (full / LoRA / QLoRA), generate, evaluate
+- [x] **SE(3)-equivariant flow-matching 3D molecule generator** (EGNN + CFM)
+- [x] Closed-loop DBTL / active-learning optimization backbone
 - [x] Bayesian hyperparameter optimization (Optuna / TPE)
 - [x] Benchmarking + figure pipeline and GitHub Pages website
 - [ ] Property-conditioned generation (logP, QED, target binding)
 - [ ] Adapters for SDK-based giants (ESM-3, Evo 2) + NVIDIA NIM inference
-- [ ] SE(3)-equivariant structure track (RFdiffusion → ProteinMPNN) for 3D de novo design
 - [ ] Scaffold / target-constrained decoding
 
 ## Author & citation

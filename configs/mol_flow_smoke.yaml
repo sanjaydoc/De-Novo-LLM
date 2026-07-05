@@ -1,0 +1,26 @@
+# Offline smoke test for the SE(3)-equivariant flow-matching generator.
+# Runs on CPU in under a minute with a toy dataset (no network, no RDKit needed
+# for training). Proves train -> sample -> evaluate works end to end.
+#
+#   denovo-mol pipeline -c configs/mol_flow_smoke.yaml
+data:
+  dataset: toy
+  n_toy: 128
+  min_atoms: 4
+  max_atoms: 10
+
+model:
+  hidden: 32
+  n_layers: 2
+
+train:
+  output_dir: outputs/mol_flow_smoke
+  epochs: 3
+  batch_size: 16
+  lr: 0.001
+  log_every: 10
+
+sample:
+  n_samples: 20
+  n_steps: 20
+  batch_size: 10

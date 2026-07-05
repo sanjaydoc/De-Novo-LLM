@@ -1,0 +1,35 @@
+# Fully OFFLINE smoke test -- no network / Hugging Face Hub needed.
+# First build the local tiny model:
+#   python scripts/make_tiny_local_model.py
+# Then run the whole pipeline:
+#   denovo pipeline -c configs/smoke_local.yaml
+#
+# Proves prepare -> train -> generate -> evaluate works end to end. It does NOT
+# produce valid molecules (2-layer random model).
+data:
+  modality: smiles
+  train_file: data/samples/smiles_sample.txt
+  validation_split: 0.1
+  max_length: 64
+
+model:
+  pretrained_model: outputs/_tiny_local
+  tokenizer_name: outputs/_tiny_local
+
+lora:
+  use_lora: false
+
+train:
+  output_dir: outputs/smoke_local
+  epochs: 2
+  batch_size: 4
+  grad_accum: 1
+  lr: 0.001
+  logging_steps: 2
+  save_steps: 1000
+
+generate:
+  num_samples: 20
+  batch_size: 10
+  max_new_tokens: 48
+  temperature: 1.0
