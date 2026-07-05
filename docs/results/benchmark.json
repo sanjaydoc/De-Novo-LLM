@@ -1,0 +1,12 @@
+[
+  {
+    "model": "GPT2-ZINC (zero-shot)",
+    "modality": "smiles",
+    "total": 1000,
+    "n_valid": 1000,
+    "validity": 1.0,
+    "uniqueness": 1.0,
+    "novelty": 1.0,
+    "diversity": 0.85
+  }
+]

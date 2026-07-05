@@ -205,6 +205,25 @@ generate:
   num_samples: 1000
 ```
 
+## Benchmark results
+
+De novo small-molecule generation with **GPT2-ZINC (87M, zero-shot)** — 1,000
+generated SMILES scored against a 50k-molecule ZINC reference set (RDKit metrics):
+
+| Model | Samples | Validity | Uniqueness | Novelty | Diversity |
+|-------|---------|----------|------------|---------|-----------|
+| GPT2-ZINC (zero-shot) | 1,000 | **100%** | **100%** | **100%** | **0.85** |
+
+![Benchmark](docs/assets/benchmark.png)
+
+Reproduce:
+
+```bash
+python scripts/download_smiles.py --max 50000 -o data/zinc.txt
+denovo generate -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m -n 1000 -o generated/base.txt
+denovo evaluate -c configs/molecule_benchmark.yaml -i generated/base.txt
+```
+
 ## Metrics
 
 `denovo evaluate` reports the field-standard de novo metrics:
