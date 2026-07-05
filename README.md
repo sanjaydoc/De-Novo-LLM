@@ -38,26 +38,78 @@ a few lines, not a new pipeline.
 
 ## Install
 
+**Requires Python 3.12** — it has wheels for the whole stack (CUDA PyTorch,
+RDKit, every dependency). Newer Pythons (3.13 / 3.14) are missing CUDA/RDKit
+wheels. Install Python 3.12 from [python.org](https://www.python.org/downloads/)
+first. Full step-by-step is in **[RUN.md](RUN.md)**.
+
+### Linux
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e .                 # core
-pip install rdkit selfies        # chemistry validity + metrics (recommended)
-pip install bitsandbytes         # only for 4-bit QLoRA (protein/large models)
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install torch
+pip install -e ".[chem]"
 ```
 
-For CUDA, install a matching torch build first, e.g.:
-
+### macOS
 ```bash
-pip install torch --index-url https://download.pytorch.org/whl/cu121
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install torch
+pip install -e ".[chem]"
 ```
 
-## 60-second smoke test (CPU, no GPU needed)
+### Windows (Command Prompt)
+```bat
+py -3.12 -m venv .venv
+.venv\Scripts\activate.bat
+pip install torch
+pip install -e ".[chem]"
+```
 
-Proves the whole pipeline works end-to-end with a tiny random model:
+### Windows (PowerShell)
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install torch
+pip install -e ".[chem]"
+```
+
+**GPU (optional, for real training):** replace `pip install torch` with
+`pip install torch --index-url https://download.pytorch.org/whl/cu128`
+(needs an NVIDIA GPU + Python 3.12). CPU is fine for all the smoke tests below.
+`.[chem]` adds RDKit + SELFIES; the core install already includes numpy,
+matplotlib, optuna and pytest.
+
+**Console scripts vs `python -m`:** installing may warn that the `denovo` /
+`denovo-mol` scripts aren't on `PATH`. Either activate a venv (which puts them
+on `PATH`), or call them as modules — both forms are shown below.
+
+## 60-second smoke tests (CPU, no GPU / network needed)
+
+Prove each track works end-to-end:
 
 ```bash
-denovo pipeline -c configs/smoke.yaml
+# SE(3)-equivariant flow-matching 3D generator
+denovo-mol pipeline -c configs/mol_flow_smoke.yaml
+python -m denovo.structure.cli pipeline -c configs/mol_flow_smoke.yaml   # same, module form
+
+# Sequence-LLM pipeline (builds a tiny local model first, fully offline)
+python scripts/make_tiny_local_model.py
+denovo pipeline -c configs/smoke_local.yaml
+
+# Closed-loop Bayesian optimization demo
+python scripts/closed_loop_demo.py
+
+# Tests
+python -m pytest        # 21 passing
 ```
+
+> **RDKit note:** RDKit is optional. On some locked-down Windows machines its
+> DLL is blocked by *Smart App Control / Application Control* (`DLL load failed …
+> An Application Control policy has blocked this file`). Everything still runs
+> without it — you only lose SMILES-based validity/uniqueness/novelty metrics
+> (atom & molecule *stability* are computed without RDKit). See RUN.md §9.
 
 ## Real runs
 

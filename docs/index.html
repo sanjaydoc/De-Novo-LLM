@@ -178,51 +178,55 @@
     </div>
 
     <div class="panel active" data-os="linux">
-<pre><span class="c"># 1. Environment</span>
-python3 -m venv .venv <span class="k">&amp;&amp;</span> source .venv/bin/activate
+<pre><span class="c"># 1. Environment (Python 3.12)</span>
+python3.12 -m venv .venv <span class="k">&amp;&amp;</span> source .venv/bin/activate
 
-<span class="c"># 2. GPU PyTorch (RTX 3000 / CUDA 12.1), then the package</span>
-pip install torch --index-url https://download.pytorch.org/whl/cu121
+<span class="c"># 2. PyTorch (CPU; for GPU use the cu128 index) + the package</span>
+pip install torch
 pip install -e ".[chem]"          <span class="c"># adds RDKit + SELFIES</span>
 
-<span class="c"># 3. Validate the pipeline on CPU (~1 min)</span>
-denovo pipeline -c configs/smoke.yaml
+<span class="c"># 3. Offline smoke tests (no network / GPU needed)</span>
+denovo-mol pipeline -c configs/mol_flow_smoke.yaml
+python scripts/make_tiny_local_model.py
+denovo pipeline -c configs/smoke_local.yaml
 
-<span class="c"># 4. Fine-tune ProGen2 on your GPU</span>
+<span class="c"># 4. Real fine-tune (downloads ProGen2 from Hugging Face)</span>
 denovo train    -c configs/progen2_protein.yaml
 denovo generate -c configs/progen2_protein.yaml -n 500 -o generated/prot.txt
 denovo evaluate -c configs/progen2_protein.yaml -i generated/prot.txt</pre>
     </div>
 
     <div class="panel" data-os="mac">
-<pre><span class="c"># 1. Environment</span>
-python3 -m venv .venv <span class="k">&amp;&amp;</span> source .venv/bin/activate
+<pre><span class="c"># 1. Environment (Python 3.12)</span>
+python3.12 -m venv .venv <span class="k">&amp;&amp;</span> source .venv/bin/activate
 
 <span class="c"># 2. PyTorch (Apple Silicon uses the MPS backend automatically)</span>
 pip install torch
 pip install -e ".[chem]"
 
-<span class="c"># 3. Validate on CPU/MPS</span>
-denovo pipeline -c configs/smoke.yaml
+<span class="c"># 3. Offline smoke tests</span>
+denovo-mol pipeline -c configs/mol_flow_smoke.yaml
+python scripts/closed_loop_demo.py
 
-<span class="c"># 4. Fine-tune (set train.fp16:false on Mac — use MPS defaults)</span>
+<span class="c"># 4. Real fine-tune (set train.fp16:false on Mac — use MPS defaults)</span>
 denovo train    -c configs/progen2_protein.yaml</pre>
     </div>
 
     <div class="panel" data-os="win">
-<pre><span class="c"># 1. Environment (PowerShell)</span>
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
+<pre><span class="c"># 1. Environment (Python 3.12, PowerShell)</span>
+py -3.12 -m venv .venv; .\.venv\Scripts\Activate.ps1
 
-<span class="c"># 2. GPU PyTorch (RTX 3000 / CUDA 12.1), then the package</span>
-pip install torch --index-url https://download.pytorch.org/whl/cu121
+<span class="c"># 2. PyTorch (CPU; GPU = cu128 index + Python 3.12) + the package</span>
+pip install torch
 pip install -e ".[chem]"
 
-<span class="c"># 3. Validate the pipeline (~1 min)</span>
-denovo pipeline -c configs/smoke.yaml
+<span class="c"># 3. Offline smoke tests</span>
+denovo-mol pipeline -c configs\mol_flow_smoke.yaml
+python scripts\make_tiny_local_model.py
+denovo pipeline -c configs\smoke_local.yaml
 
-<span class="c"># 4. Fine-tune ProGen2 on your GPU</span>
-denovo train    -c configs/progen2_protein.yaml
-denovo generate -c configs/progen2_protein.yaml -n 500 -o generated/prot.txt</pre>
+<span class="c"># 4. Real fine-tune (downloads ProGen2 from Hugging Face)</span>
+denovo train    -c configs\progen2_protein.yaml</pre>
     </div>
 
     <p style="margin-top:18px" class="callout">📖 Full platform-by-platform setup, GPU tips and troubleshooting live in

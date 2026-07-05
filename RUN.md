@@ -26,23 +26,26 @@ cd De-Novo-LLM
 
 ---
 
-## 1. Create a virtual environment
+## 1. Create a virtual environment (Python 3.12)
+
+> Install **Python 3.12** first if you don't have it (python.org). Verify with
+> `py -3.12 --version` on Windows, or `python3.12 --version` elsewhere.
 
 ### Linux
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 ```
 
 ### macOS
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 ```
 
 ### Windows — PowerShell
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 # If activation is blocked once:
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
@@ -50,7 +53,7 @@ python -m venv .venv
 
 ### Windows — Command Prompt (cmd)
 ```bat
-python -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\activate.bat
 ```
 
@@ -58,27 +61,29 @@ python -m venv .venv
 
 ## 2. Install PyTorch (do this BEFORE the package)
 
-Pick the line matching your machine.
+> **Use Python 3.12.** It has wheels for the entire stack (CUDA PyTorch,
+> RDKit, every dependency). Python 3.13/3.14 are **missing CUDA and RDKit
+> wheels** — you'll hit "No matching distribution" (GPU torch) and a blocked
+> RDKit DLL. Install Python 3.12 from python.org and build the venv with it
+> (`py -3.12 -m venv .venv` on Windows, `python3.12 -m venv .venv` elsewhere).
 
-### NVIDIA GPU (RTX 3000) — Linux / Windows
+### CPU — Linux / Windows / macOS
 ```bash
-pip install torch --index-url https://download.pytorch.org/whl/cu121
+pip install torch
+```
+The simplest option; plenty for every smoke test in this guide. On macOS Apple
+Silicon it also enables the MPS backend automatically.
+
+### NVIDIA GPU (RTX 3000) — Linux / Windows  (needs Python 3.12)
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cu128
 ```
 
-### CPU only — Linux / Windows
+Verify what you got:
 ```bash
-pip install torch --index-url https://download.pytorch.org/whl/cpu
+python -c "import torch; print(torch.__version__, '| CUDA:', torch.cuda.is_available())"
 ```
-
-### macOS (Apple Silicon or Intel)
-```bash
-pip install torch          # Apple Silicon uses the MPS backend automatically
-```
-
-Verify the GPU is visible:
-```bash
-python -c "import torch; print('CUDA:', torch.cuda.is_available())"
-```
+`...+cpu` → CPU build (fine for demos). `...+cu128 ... True` → GPU ready.
 
 ---
 
@@ -102,19 +107,28 @@ pip install -e ".[chem,quant,track,dev]"
 
 ---
 
-## 4. Validate your setup (CPU smoke test, ~1 minute)
+## 4. Validate your setup (offline smoke tests)
 
-Runs the entire pipeline (prepare → train → generate → evaluate) with a tiny
-random model. It does **not** produce real molecules — it proves your install
-works.
+These run on CPU, need no network, and prove each track works end to end. They
+use tiny models on toy data — they don't produce real molecules, they prove the
+plumbing. If the `denovo` / `denovo-mol` commands aren't found (a pip warning
+about `PATH`), use the `python -m` form shown beside each.
 
 ```bash
-denovo pipeline -c configs/smoke.yaml
-```
+# SE(3)-equivariant flow-matching 3D generator
+denovo-mol pipeline -c configs/mol_flow_smoke.yaml
+python -m denovo.structure.cli pipeline -c configs/mol_flow_smoke.yaml   # module form
 
-Run the unit tests too (no ML needed):
-```bash
-pytest -q
+# Sequence-LLM pipeline (builds a tiny local model first — no Hugging Face needed)
+python scripts/make_tiny_local_model.py
+denovo pipeline -c configs/smoke_local.yaml
+python -m denovo.cli pipeline -c configs/smoke_local.yaml                # module form
+
+# Closed-loop Bayesian optimization demo (writes docs/assets/closed_loop.png)
+python scripts/closed_loop_demo.py
+
+# Test suite (21 passing)
+python -m pytest
 ```
 
 ---
@@ -209,12 +223,16 @@ Rule of thumb: ≤200M params → full fine-tune · 200M–1B → LoRA · >1B �
 
 | Symptom | Fix |
 |---------|-----|
-| `CUDA available: False` | Reinstall torch with the `cu121` index; update your NVIDIA driver. |
-| `OSError: Can't load ... from huggingface.co` | No internet / blocked network. Models download from the HF Hub on first use. |
+| `Could not find a version that satisfies the requirement torch` (GPU/cu index) | The CUDA index has no wheel for your Python. Use **Python 3.12**; or `pip install torch` (CPU). |
+| `CUDA available: False` after `pip install torch` | The default wheel is CPU-only on Windows. Install the GPU build: `pip install torch --index-url https://download.pytorch.org/whl/cu128` (Python 3.12). |
+| `denovo` / `denovo-mol` : command not found | The console scripts aren't on `PATH`. Activate your venv, or run the module form: `python -m denovo.cli ...` / `python -m denovo.structure.cli ...`. |
+| `ModuleNotFoundError: No module named 'matplotlib'` | Reinstall the package (`pip install -e .`) — matplotlib is now a bundled dependency. |
+| `ImportError: DLL load failed while importing rdBase: An Application Control policy has blocked this file` | Windows **Smart App Control / Application Control** is blocking RDKit's DLL. Either turn Smart App Control off (Windows Security → App & browser control — one-way change), or just proceed without RDKit (only SMILES-validity metrics are lost; stability metrics still work). |
+| `OSError: Can't load ... from huggingface.co` | No internet / blocked network. Models download from the HF Hub on first use. Use the offline `configs/smoke_local.yaml` + `configs/mol_flow_smoke.yaml` to test without downloads. |
 | `trust_remote_code` prompt (ProGen2, HyenaDNA) | The config sets `trust_remote_code: true`; that is expected. |
 | `bitsandbytes` import error on Windows | Use a full-fine-tune model, or run QLoRA under WSL2/Linux. |
 | Out of memory | See section 8. |
-| RDKit metrics show as `-` | `pip install rdkit selfies`. |
+| RDKit metrics show as `0` / `-` | RDKit not importable (see the DLL row above) — install/enable RDKit, or accept stability-only metrics. |
 
 ---
 
