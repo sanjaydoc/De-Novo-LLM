@@ -204,7 +204,88 @@ python scripts/make_figures.py        # refresh docs/assets/*.png
 
 ---
 
-## 8. Fitting 6 GB — knobs that matter
+## 8. Small-molecule benchmark, controllable generation & NVIDIA NIM
+
+These are the commands used to produce the measured results in the README.
+Everything below works on **Linux / macOS / Windows**; where they differ, both
+forms are shown. If `denovo` is "not found", use the module form
+`python -m denovo.cli ...` (Windows paths accept `/` or `\`).
+
+### Real data + de novo benchmark
+
+```bash
+# 1. Download 50k real ZINC molecules
+python scripts/download_smiles.py --max 50000 -o data/zinc.txt
+
+# 2. Generate 1000 de novo molecules from the ZINC-pretrained LLM
+denovo generate -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m -n 1000 -o generated/base.txt
+
+# 3. Score them (validity / uniqueness / novelty / diversity — needs RDKit)
+denovo evaluate -c configs/molecule_benchmark.yaml -i generated/base.txt
+
+# 4. Benchmark figure for the website
+python scripts/benchmark.py -c configs/molecule_benchmark.yaml -m GPT2-ZINC entropy/gpt2_zinc_87m -n 1000
+python scripts/make_figures.py
+```
+
+### Property-conditioned generation
+
+```bash
+# Maximize drug-likeness (QED)
+denovo condition -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+    --property qed --mode max -n 200 --oversample 10 -o generated/qed.txt
+
+# Hit a target logP of 2.5
+denovo condition -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+    --property logp --mode target --target 2.5 -n 200
+
+# Distribution-shift figure
+python scripts/property_conditioning.py -m entropy/gpt2_zinc_87m --property qed --mode max
+```
+
+### Scaffold-constrained generation
+
+```bash
+# Keep molecules that contain a benzene ring
+denovo scaffold -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+    --scaffold "c1ccccc1" -n 100 --oversample 20 -o generated/aromatic.txt
+
+# SMARTS query (sulfonamide) ranked by QED
+denovo scaffold -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+    --scaffold "S(=O)(=O)N" --smarts --property qed --mode max -n 100
+```
+
+### NVIDIA NIM cloud inference (MolMIM / ESMFold / Evo 2)
+
+Get a free key at [build.nvidia.com](https://build.nvidia.com), set it in the
+environment (the only per-OS difference), then call a NIM.
+
+**Set the key**
+
+| OS | Command |
+|----|---------|
+| Linux / macOS | `export NVIDIA_API_KEY=nvapi-xxxx` |
+| Windows CMD | `set NVIDIA_API_KEY=nvapi-xxxx` |
+| Windows PowerShell | `$env:NVIDIA_API_KEY = "nvapi-xxxx"` |
+
+**Call the NIMs** (same on every OS)
+
+```bash
+denovo nim --service list
+# MolMIM: generate + optimize molecules around a seed (CMA-ES on QED)
+denovo nim --service molmim --smi "CC(=O)Oc1ccccc1C(=O)O" -n 30 --property QED -o generated/nim.txt
+# ESMFold: fold a protein sequence -> PDB
+denovo nim --service esmfold --sequence MKTAYIAKQRQISFVKSHFSRQLEERLGLIE -o structure.pdb
+# Evo 2: continue a DNA sequence
+denovo nim --service evo2 --sequence ATGGCGAGCATGACC -n 100 -o generated/dna.txt
+```
+
+> On Windows, prefix these with `python -m denovo.cli` if the `denovo` command
+> isn't on `PATH` (e.g. `python -m denovo.cli nim --service molmim ...`).
+
+---
+
+## 9. Fitting 6 GB — knobs that matter
 
 If you hit **CUDA out of memory**, apply these in order (edit your config):
 
@@ -219,7 +300,7 @@ Rule of thumb: ≤200M params → full fine-tune · 200M–1B → LoRA · >1B �
 
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
@@ -231,12 +312,12 @@ Rule of thumb: ≤200M params → full fine-tune · 200M–1B → LoRA · >1B �
 | `OSError: Can't load ... from huggingface.co` | No internet / blocked network. Models download from the HF Hub on first use. Use the offline `configs/smoke_local.yaml` + `configs/mol_flow_smoke.yaml` to test without downloads. |
 | `trust_remote_code` prompt (ProGen2, HyenaDNA) | The config sets `trust_remote_code: true`; that is expected. |
 | `bitsandbytes` import error on Windows | Use a full-fine-tune model, or run QLoRA under WSL2/Linux. |
-| Out of memory | See section 8. |
+| Out of memory | See section 9. |
 | RDKit metrics show as `0` / `-` | RDKit not importable (see the DLL row above) — install/enable RDKit, or accept stability-only metrics. |
 
 ---
 
-## 10. Website & docs
+## 11. Website & docs
 
 - Project website (GitHub Pages): enable Pages from the `/docs` folder in repo
   settings → served at `https://sanjaydoc.github.io/De-Novo-LLM/`.

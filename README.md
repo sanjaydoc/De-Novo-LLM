@@ -109,7 +109,7 @@ python -m pytest        # 31 passing
 > DLL is blocked by *Smart App Control / Application Control* (`DLL load failed …
 > An Application Control policy has blocked this file`). Everything still runs
 > without it — you only lose SMILES-based validity/uniqueness/novelty metrics
-> (atom & molecule *stability* are computed without RDKit). See RUN.md §9.
+> (atom & molecule *stability* are computed without RDKit). See RUN.md §10.
 
 ## Real runs
 
