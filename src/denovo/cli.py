@@ -187,6 +187,59 @@ def cmd_scaffold(args) -> None:
         print(f"\nWrote {len(result.matches)} molecules to {args.output}")
 
 
+def cmd_nim(args) -> None:
+    """Call NVIDIA hosted NIMs (MolMIM / ESMFold / Evo 2)."""
+    from denovo.nim import NIM_MODELS
+
+    if args.service == "list":
+        print("NVIDIA NIM services (set NVIDIA_API_KEY; keys at build.nvidia.com):")
+        for name, desc in NIM_MODELS.items():
+            print(f"  - {name:8s} {desc}")
+        return
+
+    from denovo.nim import NIMClient
+
+    client = NIMClient()  # reads NVIDIA_API_KEY
+
+    if args.service == "molmim":
+        if not args.smi:
+            raise SystemExit("nim molmim requires --smi <seed SMILES>")
+        algorithm = "none" if args.no_optimize else "CMA-ES"
+        mols = client.molmim_generate(
+            args.smi, num_molecules=args.num, algorithm=algorithm,
+            property_name=args.property, minimize=args.minimize,
+        )
+        print(f"MolMIM returned {len(mols)} molecules"
+              + ("" if args.no_optimize else f" (optimizing {args.property}):"))
+        for m in mols[:20]:
+            extra = f"  score={m['score']:.3f}" if m.get("score") is not None else ""
+            print(f"  {m['smiles']}{extra}")
+        if args.output:
+            os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as fh:
+                for m in mols:
+                    fh.write((m["smiles"] or "") + "\n")
+            print(f"Wrote {len(mols)} molecules to {args.output}")
+
+    elif args.service == "esmfold":
+        if not args.sequence:
+            raise SystemExit("nim esmfold requires --sequence <amino acids>")
+        pdb = client.esmfold_predict(args.sequence)
+        out = args.output or "structure.pdb"
+        with open(out, "w", encoding="utf-8") as fh:
+            fh.write(pdb or "")
+        print(f"ESMFold structure written to {out} ({len(pdb or '')} chars)")
+
+    elif args.service == "evo2":
+        if not args.sequence:
+            raise SystemExit("nim evo2 requires --sequence <DNA>")
+        seq = client.evo2_generate(args.sequence, num_tokens=args.num)
+        print(f"Evo 2 generated:\n{seq}")
+        if args.output:
+            with open(args.output, "w", encoding="utf-8") as fh:
+                fh.write((seq or "") + "\n")
+
+
 def cmd_optimize(args) -> None:
     """Bayesian (TPE) hyperparameter optimization over quality metrics."""
     from denovo.optimize import ObjectiveWeights, optimize
@@ -322,6 +375,17 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--model", "-m", help="Checkpoint / HF id.")
     sp.add_argument("--output", "-o", help="Write matches here.")
     sp.set_defaults(func=cmd_scaffold)
+
+    sp = sub.add_parser("nim", help="Call NVIDIA hosted NIMs (MolMIM/ESMFold/Evo2).")
+    sp.add_argument("--service", choices=["molmim", "esmfold", "evo2", "list"], default="list")
+    sp.add_argument("--smi", help="Seed SMILES (molmim).")
+    sp.add_argument("--sequence", help="Protein (esmfold) or DNA (evo2) sequence.")
+    sp.add_argument("--num", "-n", type=int, default=30, help="Molecules / tokens.")
+    sp.add_argument("--property", "-p", default="QED", help="MolMIM property to optimize.")
+    sp.add_argument("--minimize", action="store_true", help="Minimize the property.")
+    sp.add_argument("--no-optimize", action="store_true", help="Sample only (no CMA-ES).")
+    sp.add_argument("--output", "-o", help="Output file.")
+    sp.set_defaults(func=cmd_nim)
 
     sp = sub.add_parser("optimize", help="Bayesian (TPE) hyperparameter search.")
     add_config(sp)

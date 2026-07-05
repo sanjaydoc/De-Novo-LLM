@@ -102,7 +102,7 @@ denovo pipeline -c configs/smoke_local.yaml
 python scripts/closed_loop_demo.py
 
 # Tests
-python -m pytest        # 28 passing
+python -m pytest        # 31 passing
 ```
 
 > **RDKit note:** RDKit is optional. On some locked-down Windows machines its
@@ -204,6 +204,26 @@ denovo scaffold -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
 
 Reports the **constraint-satisfaction rate** (fraction of valid molecules that
 contain the scaffold). Pass `--smarts` to use a SMARTS query instead of SMILES.
+
+### NVIDIA NIM cloud inference (big models that don't fit locally)
+
+For models too large for a 6GB GPU — **MolMIM** (controlled molecule generation
+/ optimization), **ESMFold** (sequence → structure), **Evo 2** (genomic) — call
+NVIDIA's hosted NIMs. Get a free key at [build.nvidia.com](https://build.nvidia.com),
+then:
+
+```bash
+# bash: export NVIDIA_API_KEY=nvapi-...      Windows: set NVIDIA_API_KEY=nvapi-...
+
+denovo nim --service list
+# Generate + optimize molecules around a seed (MolMIM, CMA-ES on QED)
+denovo nim --service molmim --smi "CC(=O)Oc1ccccc1C(=O)O" -n 30 --property QED -o generated/nim.txt
+# Fold a protein sequence (ESMFold) -> PDB
+denovo nim --service esmfold --sequence MKTAYIAKQR... -o structure.pdb
+```
+
+This is the cloud complement to the local tracks: generate/optimize locally,
+then call a NIM for capabilities that need cloud scale.
 
 Inspect what a config resolves to:
 
@@ -334,7 +354,7 @@ tests/              unit tests (core, structure equivariance, closed loop)
 - ✅ Bayesian hyperparameter optimization (Optuna / TPE)
 - ✅ Benchmarking + figure pipeline and GitHub Pages website
 - ✅ Property-conditioned generation (logP, QED, MW … via RDKit objectives)
-- ⬜ Adapters for SDK-based giants (ESM-3, Evo 2) + NVIDIA NIM inference
+- ✅ NVIDIA NIM cloud inference (MolMIM · ESMFold · Evo 2)
 - ✅ Scaffold / substructure-constrained decoding (RDKit substructure filter)
 
 ## Author & citation
