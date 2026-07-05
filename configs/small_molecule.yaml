@@ -1,0 +1,44 @@
+# Small-molecule (SMILES) fine-tuning, tuned for a 6GB laptop GPU.
+#
+# gpt2_zinc_87m is ~87M params -> fits a FULL fine-tune in 6GB with fp16 and a
+# modest batch size. Swap `pretrained_model` for any HF causal LM you like.
+#
+#   denovo prepare  -c configs/small_molecule.yaml -i data/your_smiles.txt
+#   denovo train    -c configs/small_molecule.yaml
+#   denovo generate -c configs/small_molecule.yaml -n 1000 -o generated/mols.txt
+#   denovo evaluate -c configs/small_molecule.yaml -i generated/mols.txt
+data:
+  modality: smiles
+  train_file: data/samples/smiles_sample.txt   # replace with your corpus
+  validation_split: 0.05
+  max_length: 128
+  filter_invalid: true
+  canonicalize: true
+
+model:
+  pretrained_model: entropy/gpt2_zinc_87m
+  torch_dtype: float16
+
+lora:
+  use_lora: false      # 87M fits a full fine-tune; set true for LoRA instead
+
+train:
+  output_dir: outputs/smiles_gpt2_zinc
+  epochs: 5
+  batch_size: 16
+  grad_accum: 2
+  lr: 0.0005
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  fp16: true
+  gradient_checkpointing: false
+  logging_steps: 20
+  save_steps: 500
+
+generate:
+  num_samples: 1000
+  batch_size: 50
+  max_new_tokens: 128
+  do_sample: true
+  temperature: 1.0
+  top_p: 0.95

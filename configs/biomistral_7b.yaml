@@ -1,0 +1,49 @@
+# BioMistral-7B QLoRA -- BIOMEDICAL TEXT model (Mistral-7B continued-pretrained
+# on PubMed Central). It generates natural-language biomedical *text*, NOT raw
+# SMILES/protein/DNA sequences. Use it for reasoning/writing about biomolecules,
+# instruction-following, or as a base for text-conditioned pipelines.
+#
+# 7B on a 6GB GPU is only possible with aggressive 4-bit QLoRA: batch size 1,
+# short sequences, and gradient checkpointing. It is tight -- if you hit OOM,
+# lower max_length to 128 or move to a cloud GPU (Colab/Kaggle).
+#
+#   pip install bitsandbytes
+#   denovo train -c configs/biomistral_7b.yaml
+data:
+  modality: smiles          # only used for the (optional) validity metric;
+                            # for free text you can ignore evaluate's numbers
+  train_file: data/samples/smiles_sample.txt
+  validation_split: 0.05
+  max_length: 256
+  filter_invalid: false
+  canonicalize: false
+
+model:
+  pretrained_model: BioMistral/BioMistral-7B
+  load_in_4bit: true
+  torch_dtype: float16
+
+lora:
+  use_lora: true
+  r: 16
+  alpha: 32
+  dropout: 0.05
+
+train:
+  output_dir: outputs/biomistral_qlora
+  epochs: 1
+  batch_size: 1
+  grad_accum: 16
+  lr: 0.0002
+  fp16: true
+  gradient_checkpointing: true
+  logging_steps: 5
+  save_steps: 200
+
+generate:
+  num_samples: 20
+  batch_size: 2
+  max_new_tokens: 256
+  do_sample: true
+  temperature: 0.7
+  top_p: 0.9

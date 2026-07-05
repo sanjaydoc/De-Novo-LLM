@@ -1,0 +1,49 @@
+# ProGen2 -- purpose-built autoregressive protein language model, excellent for
+# DE NOVO protein/peptide generation. progen2-small is ~151M params and fits a
+# 6GB GPU comfortably (full fine-tune or LoRA).
+#
+# Uses the community HF port which carries custom modeling code, so
+# trust_remote_code must be true.
+#
+# Larger siblings (swap pretrained_model):
+#   hugohrban/progen2-small  (151M)  <- default, fits 6GB easily
+#   hugohrban/progen2-base   (764M)  <- use LoRA / 4-bit on 6GB
+#   hugohrban/progen2-large  (2.7B)  <- QLoRA, tight on 6GB
+#
+#   pip install -e .            # then:
+#   denovo train    -c configs/progen2_protein.yaml
+#   denovo generate -c configs/progen2_protein.yaml -n 200 -o generated/prot.txt
+#   denovo evaluate -c configs/progen2_protein.yaml -i generated/prot.txt
+data:
+  modality: protein
+  train_file: data/samples/protein_sample.txt   # replace with your corpus
+  validation_split: 0.05
+  max_length: 256
+
+model:
+  pretrained_model: hugohrban/progen2-small
+  trust_remote_code: true
+  torch_dtype: float16
+
+lora:
+  use_lora: false     # 151M fits full fine-tune in 6GB; set true for LoRA
+
+train:
+  output_dir: outputs/progen2_small
+  epochs: 3
+  batch_size: 4
+  grad_accum: 4
+  lr: 0.0003
+  warmup_ratio: 0.03
+  fp16: true
+  gradient_checkpointing: true
+  logging_steps: 20
+  save_steps: 500
+
+generate:
+  num_samples: 200
+  batch_size: 16
+  max_new_tokens: 256
+  do_sample: true
+  temperature: 1.0
+  top_p: 0.9

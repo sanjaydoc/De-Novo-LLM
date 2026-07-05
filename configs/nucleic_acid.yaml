@@ -1,0 +1,42 @@
+# DNA sequence fine-tuning (char-level).
+#
+# Default is a plain gpt2 tokenizer/model fine-tuned character-by-character on
+# ACGT -- small, standard, and fits 6GB easily. For a proper genomic model use
+# HyenaDNA (set trust_remote_code) or, on bigger hardware, Evo 2.
+#
+# NOTE on Evo 2: Evo 2 (1B/7B/40B, StripedHyena-2) needs the `evo2`/vortex
+# stack and FP8-class GPUs (H100). It does not fit or run on a 6GB laptop.
+# Use it via NVIDIA NIM / BioNeMo in the cloud. See docs/MODELS.md.
+data:
+  modality: dna
+  train_file: data/samples/dna_sample.txt
+  validation_split: 0.05
+  max_length: 256
+
+model:
+  pretrained_model: gpt2         # char-level fine-tune; swap for HyenaDNA
+  # For HyenaDNA instead:
+  # pretrained_model: LongSafari/hyenadna-tiny-1k-seqlen-hf
+  # trust_remote_code: true
+  torch_dtype: float16
+
+lora:
+  use_lora: false
+
+train:
+  output_dir: outputs/dna_gpt2
+  epochs: 5
+  batch_size: 8
+  grad_accum: 2
+  lr: 0.0005
+  fp16: true
+  logging_steps: 20
+  save_steps: 500
+
+generate:
+  num_samples: 200
+  batch_size: 25
+  max_new_tokens: 256
+  do_sample: true
+  temperature: 1.0
+  top_p: 0.95

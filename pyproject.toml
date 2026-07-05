@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "denovo-llm"
+version = "0.1.0"
+description = "A modular framework for de novo biomolecule generation by fine-tuning language models."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "sanjaydoc" }]
+keywords = ["de-novo", "generative", "molecules", "proteins", "llm", "cheminformatics"]
+
+dependencies = [
+    "torch>=2.1",
+    "transformers>=4.40",
+    "datasets>=2.18",
+    "accelerate>=0.30",
+    "peft>=0.11",
+    "pyyaml>=6.0",
+    "numpy>=1.24",
+    "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+chem = ["rdkit", "selfies"]
+quant = ["bitsandbytes"]
+track = ["tensorboard"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+denovo = "denovo.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

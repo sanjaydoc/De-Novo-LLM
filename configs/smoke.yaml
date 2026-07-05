@@ -1,0 +1,31 @@
+# Tiny CPU smoke test -- validates the whole pipeline in seconds with a random
+# 2-layer model. It will NOT produce valid molecules; it only proves the
+# prepare -> train -> generate -> evaluate plumbing works end to end.
+#
+#   denovo pipeline -c configs/smoke.yaml
+data:
+  modality: smiles
+  train_file: data/samples/smiles_sample.txt
+  validation_split: 0.1
+  max_length: 64
+
+model:
+  pretrained_model: sshleifer/tiny-gpt2
+
+lora:
+  use_lora: false
+
+train:
+  output_dir: outputs/smoke
+  epochs: 1
+  batch_size: 4
+  grad_accum: 1
+  lr: 0.001
+  logging_steps: 1
+  save_steps: 1000
+
+generate:
+  num_samples: 20
+  batch_size: 10
+  max_new_tokens: 48
+  temperature: 1.0

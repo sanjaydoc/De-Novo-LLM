@@ -1,0 +1,27 @@
+# Core dependencies for De-Novo-LLM
+# Install with: pip install -r requirements.txt
+#
+# For CUDA (RTX 3000, 6GB VRAM) install a matching torch build first, e.g.:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+
+torch>=2.1
+transformers>=4.40
+datasets>=2.18
+accelerate>=0.30
+peft>=0.11
+pyyaml>=6.0
+numpy>=1.24
+tqdm>=4.65
+
+# ---------------------------------------------------------------------------
+# Optional extras (install only what you need):
+#
+#   Chemistry (SMILES/SELFIES validation & metrics):
+#     pip install rdkit selfies
+#
+#   4-bit / 8-bit QLoRA on GPU (needed for larger models e.g. ProtGPT2):
+#     pip install bitsandbytes
+#
+#   Experiment tracking:
+#     pip install tensorboard
+# ---------------------------------------------------------------------------

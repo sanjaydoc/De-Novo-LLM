@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# ML artifacts
+outputs/
+runs/
+checkpoints/
+*.ckpt
+*.pt
+*.bin
+*.safetensors
+wandb/
+.cache/
+hf_cache/
+
+# Data (keep small samples, ignore large corpora)
+data/raw/
+data/processed/
+data/*.smi
+data/*.csv
+data/*.parquet
+!data/samples/**
+
+# Generated molecules
+generated/
+*.gen.txt
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.ipynb_checkpoints/
