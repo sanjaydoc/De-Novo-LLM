@@ -265,9 +265,11 @@ denovo train    -c configs\progen2_protein.yaml</pre>
     <h2>Benchmarks &amp; results</h2>
     <p class="sub">Every generation run is scored on the four standard de novo metrics. The figures below
       are produced by <code>scripts/benchmark.py</code> and <code>scripts/make_figures.py</code>.</p>
-    <p class="note"><b>Measured result:</b> GPT2-ZINC (87M, zero-shot) — 1,000 generated SMILES vs a 50k
-      ZINC reference: <b>100% validity, 100% uniqueness, 100% novelty, 0.85 diversity</b> (RDKit).
-      The loss and Bayesian-optimization charts below remain illustrative until those runs.</p>
+    <p class="note"><b>Measured results</b> (GPT2-ZINC 87M, RDKit): <b>de novo</b> — 100% validity /
+      100% uniqueness / 100% novelty / 0.85 diversity on 1,000 molecules;
+      <b>property conditioning</b> — mean QED 0.74 → 0.90; <b>scaffold constraint</b> — benzene
+      containment steered from 57% to 100%. The loss and Bayesian-optimization charts remain
+      illustrative until those runs.</p>
     <div class="grid cols-2" style="margin-top:22px">
       <figure>
         <img src="assets/benchmark.png" alt="Measured de novo benchmark: validity, uniqueness, novelty" />
