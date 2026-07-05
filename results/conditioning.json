@@ -1,0 +1,9 @@
+{
+  "property": "qed",
+  "objective": "maximize qed",
+  "model": "GPT2-ZINC (zero-shot)",
+  "n": 200,
+  "oversample": 10,
+  "unconditioned": {"mean": 0.737, "min": 0.26, "max": 0.94},
+  "conditioned": {"mean": 0.901, "min": 0.88, "max": 0.94}
+}
