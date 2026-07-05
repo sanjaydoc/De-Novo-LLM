@@ -1,0 +1,178 @@
+================================================================================
+ De-Novo-LLM  —  PROJECT SUMMARY
+ What we built and tested
+================================================================================
+
+ Author   : Dr. Sanjay Anbu (MD)
+ Repo     : https://github.com/sanjaydoc/De-Novo-LLM
+ Website  : https://sanjaydoc.github.io/De-Novo-LLM/
+ License  : MIT (c) 2026 Dr. Sanjay Anbu
+ Hardware : developed + tested on a laptop — NVIDIA RTX 3000 (6 GB VRAM),
+            16 GB RAM, i7 CPU  (all core features run on CPU too)
+ Status   : 9 / 9 roadmap complete · 31 tests passing · 4 live measured results
+
+
+--------------------------------------------------------------------------------
+ 1. WHAT IT IS
+--------------------------------------------------------------------------------
+A modular, config-driven framework for DE NOVO BIOMOLECULE generation and
+optimization. One codebase spans small molecules (SMILES/SELFIES), proteins /
+peptides, and nucleic acids (DNA/RNA), across three local tracks plus a cloud
+track:
+
+  1) Sequence generation  — fine-tune pretrained causal LMs (ProGen2 / ESM /
+     ChemGPT / GPT2-ZINC) with full fine-tune, LoRA, or 4-bit QLoRA.        [denovo]
+  2) SE(3)-equivariant 3D structure generation — a from-scratch E(3)-equivariant
+     flow-matching model (EGNN + conditional flow matching) that invents
+     molecules as 3D atomic point clouds.                              [denovo-mol]
+  3) Closed-loop optimization — a Design-Build-Test-Learn (DBTL) / active-
+     learning backbone: uncertainty-aware surrogate + Bayesian acquisition +
+     simulated oracle.                                          [denovo.closedloop]
+  4) NVIDIA NIM cloud inference — call hosted MolMIM / ESMFold / Evo 2 for models
+     too large for a 6 GB GPU.                                        [denovo nim]
+
+
+--------------------------------------------------------------------------------
+ 2. ROADMAP — 9 / 9 COMPLETE
+--------------------------------------------------------------------------------
+  [x] 1. Modular modality registry (molecules / proteins / nucleic acids)
+  [x] 2. Fine-tune (full / LoRA / QLoRA), generate, evaluate
+  [x] 3. SE(3)-equivariant flow-matching 3D molecule generator (EGNN + CFM)
+  [x] 4. Closed-loop DBTL / active-learning optimization backbone
+  [x] 5. Bayesian hyperparameter optimization (Optuna / TPE)
+  [x] 6. Benchmarking + figure pipeline and GitHub Pages website
+  [x] 7. Property-conditioned generation (logP, QED, MW ... via RDKit objectives)
+  [x] 8. NVIDIA NIM cloud inference (MolMIM · ESMFold · Evo 2)
+  [x] 9. Scaffold / substructure-constrained decoding
+
+
+--------------------------------------------------------------------------------
+ 3. MEASURED RESULTS (all personally run + verified)
+--------------------------------------------------------------------------------
+ A) De novo small-molecule benchmark — GPT2-ZINC (87M, zero-shot), 1,000 SMILES
+    vs a 50k ZINC reference (RDKit):
+        Validity 100%   Uniqueness 100%   Novelty 100%   Diversity 0.85
+
+ B) Property-conditioned generation — steer to maximize QED (drug-likeness):
+        QED mean 0.737 -> 0.901   (range tightened from 0.26-0.94 to 0.88-0.94)
+
+ C) Scaffold-constrained generation — require a benzene ring (c1ccccc1):
+        57.4% of generated valid molecules contained it; output filtered to
+        100% constraint satisfaction (1,148 / 2,000 matched)
+
+ D) NVIDIA NIM (MolMIM, cloud) — seed = aspirin (QED ~0.55), optimize QED (CMA-ES):
+        30 valid analogs, best QED 0.91, top-20 mean QED ~0.87
+
+
+--------------------------------------------------------------------------------
+ 4. KEY VERIFICATION — SE(3)/E(3) EQUIVARIANCE (empirical, in tests)
+--------------------------------------------------------------------------------
+    Coordinate-velocity rotation equivariance error : 1.9e-7
+    Atom-type-velocity invariance error             : 8.9e-8
+    Coordinate field centre-of-mass (~0)            : 5.8e-11
+    Full train -> sample -> evaluate runs offline on CPU.
+
+
+--------------------------------------------------------------------------------
+ 5. COMMANDS WE TESTED  (Linux/macOS shown; Windows: python -m denovo.cli ...)
+--------------------------------------------------------------------------------
+ Setup
+    python3.12 -m venv .venv && source .venv/bin/activate     # Win: py -3.12 ...
+    pip install torch
+    pip install -e ".[chem]"
+
+ Offline smoke tests (no network / GPU)
+    denovo-mol pipeline -c configs/mol_flow_smoke.yaml
+    python scripts/make_tiny_local_model.py
+    denovo pipeline -c configs/smoke_local.yaml
+    python scripts/closed_loop_demo.py
+    python -m pytest                       # 31 passing
+
+ Real small-molecule benchmark
+    python scripts/download_smiles.py --max 50000 -o data/zinc.txt
+    denovo generate -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m -n 1000 -o generated/base.txt
+    denovo evaluate -c configs/molecule_benchmark.yaml -i generated/base.txt
+
+ Property-conditioned generation
+    denovo condition -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+        --property qed --mode max -n 200 --oversample 10 -o generated/qed.txt
+
+ Scaffold-constrained generation
+    denovo scaffold -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+        --scaffold "c1ccccc1" -n 100 --oversample 20 -o generated/aromatic.txt
+
+ NVIDIA NIM cloud
+    export NVIDIA_API_KEY=nvapi-...        # Win CMD: set NVIDIA_API_KEY=...
+    denovo nim --service list
+    denovo nim --service molmim --smi "CC(=O)Oc1ccccc1C(=O)O" -n 30 --property QED -o generated/nim.txt
+    denovo nim --service esmfold --sequence MKTAYIAKQR... -o structure.pdb
+
+ (Full platform-by-platform guide: RUN.md)
+
+
+--------------------------------------------------------------------------------
+ 6. CODE LAYOUT
+--------------------------------------------------------------------------------
+ src/denovo/
+   modalities.py    modality registry: validators, canonicalisers, defaults
+   config.py        typed YAML config
+   data.py          read / clean / tokenise
+   model.py         load model+tokenizer, LoRA / QLoRA
+   train.py         HF Trainer fine-tuning loop
+   generate.py      sampling
+   evaluate.py      validity / uniqueness / novelty / diversity
+   optimize.py      Bayesian (Optuna/TPE) hyperparameter search
+   properties.py    RDKit property objectives (logP, QED, MW, TPSA, ...)
+   condition.py     property-conditioned (guided) generation
+   scaffold.py      substructure-constrained generation
+   nim.py           NVIDIA NIM client (MolMIM / ESMFold / Evo 2)
+   cli.py           `denovo` CLI
+   structure/       SE(3)-equivariant flow-matching generator (`denovo-mol`)
+     egnn.py          E(3)-equivariant GNN backbone
+     flow.py          conditional flow matching + zero-CoM utilities
+     model.py         velocity field + CFM loss + ODE sampler
+     chem.py          atom vocab, bond inference, stability metrics
+     data.py / train.py / sample.py / evaluate.py / config.py / cli.py
+   closedloop/      DBTL / active-learning backbone
+     oracle.py        budgeted noisy simulated experiment
+     surrogate.py     deep ensemble / Gaussian process (uncertainty)
+     acquisition.py   EI / UCB / PI / Thompson + batch selection
+     loop.py          active-learning orchestrator (+ generative proposer hook)
+     featurize.py     identity + RDKit fingerprint/descriptor featurizers
+
+ scripts/           download_smiles, download_data, benchmark, make_figures,
+                    closed_loop_demo, property_conditioning, make_tiny_local_model
+ configs/           mol_flow, small_molecule, progen2_protein, molecule_benchmark,
+                    protein, nucleic_acid, biomistral_7b, smoke*, ...
+ tests/             31 passing (registry, config, structure equivariance,
+                    closed-loop, properties, scaffold, NIM)
+ docs/              GitHub Pages website (index.html) + MODELS.md + results/assets
+ RUN.md             cross-platform run guide (Linux / macOS / Windows)
+
+
+--------------------------------------------------------------------------------
+ 7. TECH STACK
+--------------------------------------------------------------------------------
+ Python 3.12 · PyTorch · Hugging Face Transformers / Datasets / Accelerate /
+ PEFT (LoRA/QLoRA) · Optuna (TPE Bayesian optimization) · RDKit · NumPy ·
+ Matplotlib · NVIDIA NIM (BioNeMo) REST API.
+
+
+--------------------------------------------------------------------------------
+ 8. RELEVANCE TO "ML RESEARCH SCIENTIST — DE NOVO DESIGN" (Merge Labs)
+--------------------------------------------------------------------------------
+ Every stated JD pillar is demonstrated:
+   - LLMs                 -> sequence fine-tuning (ProGen2 / ESM / GPT2-ZINC)
+   - SE(3)-equivariance   -> EGNN flow-matching generator (unit-tested to 1e-7)
+   - Flow-matching        -> conditional flow matching over atoms + coordinates
+   - Closed-loop backbone -> DBTL surrogate + Bayesian acquisition + oracle
+   - Transfer learning    -> fine-tuning / LoRA / QLoRA throughout
+   - Sparse/noisy/costly   -> uncertainty-aware surrogates + batch active learning
+   - NVIDIA NIM            -> live MolMIM / ESMFold / Evo 2 cloud inference
+   - Production code       -> configs, CLI, 31 tests, docs, live website
+ (Companion repos extend this: NeuroMamba = SSM/Mamba; sonoforge = full DBTL
+  platform for ultrasound-coupling biomolecules.)
+
+================================================================================
+ Built by Dr. Sanjay Anbu — 2026.  All results above were run and verified.
+================================================================================
