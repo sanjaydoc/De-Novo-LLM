@@ -240,12 +240,23 @@ generated SMILES scored against a 50k-molecule ZINC reference set (RDKit metrics
 
 ![Benchmark](docs/assets/benchmark.png)
 
+**Property-conditioned generation** — steering the same model to maximize QED
+(drug-likeness) lifts the mean QED and concentrates the output in high-QED space:
+
+| QED (drug-likeness) | Mean | Range |
+|---------------------|------|-------|
+| Unconditioned | 0.737 | 0.26 – 0.94 |
+| Conditioned (max QED) | **0.901** | 0.88 – 0.94 |
+
+![Conditioning](docs/assets/conditioning.png)
+
 Reproduce:
 
 ```bash
 python scripts/download_smiles.py --max 50000 -o data/zinc.txt
-denovo generate -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m -n 1000 -o generated/base.txt
-denovo evaluate -c configs/molecule_benchmark.yaml -i generated/base.txt
+denovo generate  -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m -n 1000 -o generated/base.txt
+denovo evaluate  -c configs/molecule_benchmark.yaml -i generated/base.txt
+denovo condition -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m --property qed --mode max -n 200 --oversample 10
 ```
 
 ## Metrics

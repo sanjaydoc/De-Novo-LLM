@@ -288,6 +288,29 @@ def fig_training_loss():
     _save(fig, "training_loss.png")
 
 
+def fig_conditioning():
+    """Before/after property means from a real property-conditioning run."""
+    data = _load(os.path.join(RESULTS, "conditioning.json"))
+    if data is None:
+        return  # only render when a real run exists
+    prop = data.get("property", "property")
+    u, c = data["unconditioned"], data["conditioned"]
+    labels = ["unconditioned", f"conditioned\n({data.get('objective', 'max')})"]
+    means = [u["mean"], c["mean"]]
+    lo = [u["mean"] - u["min"], c["mean"] - c["min"]]
+    hi = [u["max"] - u["mean"], c["max"] - c["mean"]]
+
+    fig, ax = plt.subplots(figsize=(6.6, 4.2))
+    bars = ax.bar(labels, means, color=["#9ca3af", PRIMARY], width=0.55,
+                  yerr=[lo, hi], capsize=8, ecolor="#4b5563")
+    for b, m in zip(bars, means):
+        ax.text(b.get_x() + b.get_width() / 2, m + 0.02, f"{m:.3f}", ha="center", fontsize=11, fontweight="bold")
+    ax.set_ylabel(prop)
+    ax.set_ylim(0, 1.05)
+    ax.set_title(f"Property-conditioned generation — {prop.upper()} lift")
+    _save(fig, "conditioning.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--study", help="Path to a bo_study.json (also read from docs/results).")
