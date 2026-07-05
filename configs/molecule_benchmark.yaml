@@ -1,0 +1,53 @@
+# Small-molecule (SMILES) de novo benchmark.
+#
+# Uses GPT2-ZINC (87M, pretrained on ZINC SMILES) so you get high validity even
+# ZERO-SHOT — ideal for a first real benchmark. RDKit is required for the
+# validity / uniqueness / novelty / diversity metrics (now enabled on your box).
+#
+# Model id is swappable; alternatives if the default 404s:
+#   entropy/gpt2_zinc_87m        (default, SMILES)
+#   ncfrey/ChemGPT-4.7M          (set modality: selfies)
+#   mrm8488/chEMBL_smiles_v1
+#
+# Quick zero-shot benchmark (no training):
+#   python scripts/download_smiles.py --max 50000 -o data/zinc.txt
+#   denovo generate -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m -n 1000 -o generated/base.txt
+#   denovo evaluate -c configs/molecule_benchmark.yaml -i generated/base.txt
+#
+# Full benchmark (fine-tune then compare — GPU recommended):
+#   denovo pipeline  -c configs/molecule_benchmark.yaml -i data/zinc.txt
+#   python scripts/benchmark.py -c configs/molecule_benchmark.yaml \
+#       -m GPT2-ZINC-base      entropy/gpt2_zinc_87m \
+#       -m GPT2-ZINC-finetuned outputs/molecule_benchmark -n 1000
+#   python scripts/make_figures.py
+data:
+  modality: smiles
+  train_file: data/zinc.txt      # also the novelty reference set
+  validation_split: 0.02
+  max_length: 128
+  filter_invalid: true
+  canonicalize: true
+
+model:
+  pretrained_model: entropy/gpt2_zinc_87m
+
+lora:
+  use_lora: false
+
+train:
+  output_dir: outputs/molecule_benchmark
+  epochs: 1
+  batch_size: 16
+  grad_accum: 2
+  lr: 0.0003
+  fp16: true                     # auto-ignored on CPU
+  logging_steps: 50
+  save_steps: 1000
+
+generate:
+  num_samples: 1000
+  batch_size: 50
+  max_new_tokens: 128
+  do_sample: true
+  temperature: 1.0
+  top_p: 0.95
