@@ -246,15 +246,15 @@ tests/              unit tests (core, structure equivariance, closed loop)
 
 ## Roadmap
 
-- [x] Modular modality registry (molecules / proteins / nucleic acids)
-- [x] Fine-tune (full / LoRA / QLoRA), generate, evaluate
-- [x] **SE(3)-equivariant flow-matching 3D molecule generator** (EGNN + CFM)
-- [x] Closed-loop DBTL / active-learning optimization backbone
-- [x] Bayesian hyperparameter optimization (Optuna / TPE)
-- [x] Benchmarking + figure pipeline and GitHub Pages website
-- [ ] Property-conditioned generation (logP, QED, target binding)
-- [ ] Adapters for SDK-based giants (ESM-3, Evo 2) + NVIDIA NIM inference
-- [ ] Scaffold / target-constrained decoding
+- ✅ Modular modality registry (molecules / proteins / nucleic acids)
+- ✅ Fine-tune (full / LoRA / QLoRA), generate, evaluate
+- ✅ **SE(3)-equivariant flow-matching 3D molecule generator** (EGNN + CFM)
+- ✅ Closed-loop DBTL / active-learning optimization backbone
+- ✅ Bayesian hyperparameter optimization (Optuna / TPE)
+- ✅ Benchmarking + figure pipeline and GitHub Pages website
+- ⬜ Property-conditioned generation (logP, QED, target binding)
+- ⬜ Adapters for SDK-based giants (ESM-3, Evo 2) + NVIDIA NIM inference
+- ⬜ Scaffold / target-constrained decoding
 
 ## Author & citation
 
