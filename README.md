@@ -268,6 +268,14 @@ generated SMILES scored against a 50k-molecule ZINC reference set (RDKit metrics
 
 ![Conditioning](docs/assets/conditioning.png)
 
+**Scaffold-constrained generation** — requiring a benzene ring (`c1ccccc1`):
+57.4% of generated valid molecules contain it unconstrained; the output is
+filtered to **100% constraint satisfaction**.
+
+| Constraint | Generated (valid) | Contain scaffold | Output |
+|------------|-------------------|------------------|--------|
+| benzene `c1ccccc1` | 2,000 | 1,148 (57.4%) | 100 (100% match) |
+
 Reproduce:
 
 ```bash
@@ -275,6 +283,7 @@ python scripts/download_smiles.py --max 50000 -o data/zinc.txt
 denovo generate  -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m -n 1000 -o generated/base.txt
 denovo evaluate  -c configs/molecule_benchmark.yaml -i generated/base.txt
 denovo condition -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m --property qed --mode max -n 200 --oversample 10
+denovo scaffold  -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m --scaffold "c1ccccc1" -n 100 --oversample 20
 ```
 
 ## Metrics
