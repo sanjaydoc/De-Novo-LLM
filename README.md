@@ -296,6 +296,13 @@ filtered to **100% constraint satisfaction**.
 |------------|-------------------|------------------|--------|
 | benzene `c1ccccc1` | 2,000 | 1,148 (57.4%) | 100 (100% match) |
 
+**NVIDIA NIM cloud optimization (MolMIM)** — seeding with aspirin (QED ≈ 0.55)
+and optimizing QED via CMA-ES returns valid, more drug-like analogs:
+
+| Seed | Optimized (30) | Best QED | Top-20 mean QED |
+|------|----------------|----------|-----------------|
+| aspirin (QED ≈ 0.55) | e.g. `O=C(O)c1ccccc1Oc1cccc(F)c1F` | **0.91** | **≈ 0.87** |
+
 Reproduce:
 
 ```bash
@@ -304,6 +311,8 @@ denovo generate  -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m -n 
 denovo evaluate  -c configs/molecule_benchmark.yaml -i generated/base.txt
 denovo condition -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m --property qed --mode max -n 200 --oversample 10
 denovo scaffold  -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m --scaffold "c1ccccc1" -n 100 --oversample 20
+export NVIDIA_API_KEY=nvapi-...   # set NVIDIA_API_KEY=... on Windows
+denovo nim --service molmim --smi "CC(=O)Oc1ccccc1C(=O)O" -n 30 --property QED
 ```
 
 ## Metrics
