@@ -371,7 +371,7 @@ tests/              unit tests (core, structure equivariance, closed loop)
 **Dr. Sanjay Anbu** — [github.com/sanjaydoc/De-Novo-LLM](https://github.com/sanjaydoc/De-Novo-LLM)
 
 ```bibtex
-@software{anbu_denovo_llm_2026,
+@software{sanjay_denovo,
   author = {Dr. Sanjay Anbu},
   title  = {De-Novo-LLM: Fine-tuning language models for de novo biomolecule generation},
   year   = {2026},
