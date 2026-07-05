@@ -102,7 +102,7 @@ denovo pipeline -c configs/smoke_local.yaml
 python scripts/closed_loop_demo.py
 
 # Tests
-python -m pytest        # 21 passing
+python -m pytest        # 26 passing
 ```
 
 > **RDKit note:** RDKit is optional. On some locked-down Windows machines its
@@ -162,6 +162,30 @@ denovo optimize -c configs/progen2_protein.yaml \
     -o docs/results/bo_study.json
 python scripts/make_figures.py --study docs/results/bo_study.json
 ```
+
+### Property-conditioned generation
+
+Steer the de novo model toward molecules with a target property — maximize QED,
+hit a target logP, minimize molecular weight, etc. (RDKit objectives). Best-of-N
+guided sampling works with any pretrained checkpoint, no retraining:
+
+```bash
+# Maximize drug-likeness (QED)
+denovo condition -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+    --property qed --mode max -n 200 --oversample 10 -o generated/qed.txt
+
+# Hit a target logP of 2.5
+denovo condition -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+    --property logp --mode target --target 2.5 -n 200
+
+# Visualise the distribution shift (unconditioned vs conditioned)
+python scripts/property_conditioning.py -m entropy/gpt2_zinc_87m --property qed --mode max
+```
+
+Properties: `logp`, `qed`, `mw`, `tpsa`, `hbd`, `hba`, `rings`, `rotbonds`. The
+command reports the property distribution before vs after steering. Under the
+hood the objective is the same interface the closed-loop backbone optimizes, so
+the property can drive the full DBTL loop too.
 
 Inspect what a config resolves to:
 
@@ -271,7 +295,7 @@ tests/              unit tests (core, structure equivariance, closed loop)
 - ✅ Closed-loop DBTL / active-learning optimization backbone
 - ✅ Bayesian hyperparameter optimization (Optuna / TPE)
 - ✅ Benchmarking + figure pipeline and GitHub Pages website
-- ⬜ Property-conditioned generation (logP, QED, target binding)
+- ✅ Property-conditioned generation (logP, QED, MW … via RDKit objectives)
 - ⬜ Adapters for SDK-based giants (ESM-3, Evo 2) + NVIDIA NIM inference
 - ⬜ Scaffold / target-constrained decoding
 

@@ -127,6 +127,38 @@ def cmd_evaluate(args) -> None:
         print(f"\nMetrics written to {args.output}")
 
 
+def cmd_condition(args) -> None:
+    """Property-conditioned generation: steer molecules toward a target property."""
+    from denovo.condition import guided_generate, iterative_generate
+    from denovo.properties import PROPERTIES, build_objective
+
+    cfg = _load(args)
+    if args.num:
+        cfg.generate.num_samples = args.num
+    objective = build_objective(
+        args.property, mode=args.mode, target=args.target, tolerance=args.tolerance
+    )
+    model_path = args.model or cfg.train.output_dir
+    runner = iterative_generate if args.rounds > 1 else guided_generate
+    kwargs = dict(
+        modality_name=cfg.data.modality,
+        oversample=args.oversample,
+        trust_remote_code=cfg.model.trust_remote_code,
+    )
+    if args.rounds > 1:
+        kwargs["rounds"] = args.rounds
+    result = runner(model_path, cfg.generate, objective, **kwargs)
+
+    print(f"Property-conditioned generation ({PROPERTIES[args.property]}):")
+    print(result.summary(objective))
+    if args.output:
+        os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
+        with open(args.output, "w", encoding="utf-8") as fh:
+            for smi, val in result.selected:
+                fh.write(f"{smi}\t{val:.4f}\n")
+        print(f"\nWrote {len(result.selected)} molecules (+values) to {args.output}")
+
+
 def cmd_optimize(args) -> None:
     """Bayesian (TPE) hyperparameter optimization over quality metrics."""
     from denovo.optimize import ObjectiveWeights, optimize
@@ -235,6 +267,20 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--input", "-i", required=True, help="File of generated seqs.")
     sp.add_argument("--output", "-o", help="Write metrics JSON here.")
     sp.set_defaults(func=cmd_evaluate)
+
+    sp = sub.add_parser("condition", help="Property-conditioned generation (logP/QED/...).")
+    add_config(sp)
+    sp.add_argument("--property", "-p", required=True,
+                    help="Property: logp | qed | mw | tpsa | hbd | hba | rings | rotbonds")
+    sp.add_argument("--mode", choices=["max", "min", "target"], default="max")
+    sp.add_argument("--target", type=float, help="Target value (for --mode target).")
+    sp.add_argument("--tolerance", type=float, default=0.5)
+    sp.add_argument("--num", "-n", type=int, help="Molecules to keep.")
+    sp.add_argument("--oversample", type=int, default=8, help="Generate N x this, keep the best.")
+    sp.add_argument("--rounds", type=int, default=1, help=">1 runs iterative rounds.")
+    sp.add_argument("--model", "-m", help="Checkpoint / HF id.")
+    sp.add_argument("--output", "-o", help="Write 'smiles<TAB>value' lines here.")
+    sp.set_defaults(func=cmd_condition)
 
     sp = sub.add_parser("optimize", help="Bayesian (TPE) hyperparameter search.")
     add_config(sp)
