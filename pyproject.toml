@@ -9,7 +9,7 @@ description = "A modular framework for de novo biomolecule generation by fine-tu
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "sanjaydoc" }]
+authors = [{ name = "Dr. Sanjay Anbu", email = "dr.sanjayanbu@gmail.com" }]
 keywords = ["de-novo", "generative", "molecules", "proteins", "llm", "cheminformatics"]
 
 dependencies = [

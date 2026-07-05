@@ -1,11 +1,25 @@
 # De-Novo-LLM
 
-Fine-tune language models to generate **de novo biomolecules** — small
-molecules (SMILES/SELFIES), proteins/peptides, and nucleic acids (DNA/RNA) —
-from one modular, config-driven pipeline.
+> Fine-tune language models to generate **de novo biomolecules** — small
+> molecules (SMILES/SELFIES), proteins/peptides, and nucleic acids (DNA/RNA) —
+> from one modular, config-driven pipeline.
+
+![Python](https://img.shields.io/badge/python-3.9%2B-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-Transformers%20%7C%20PEFT-ee4c2c)
+![Tuning](https://img.shields.io/badge/fine--tuning-LoRA%20%7C%20QLoRA-7c3aed)
+![BayesOpt](https://img.shields.io/badge/Bayesian%20Opt-Optuna%20TPE-059669)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Platforms](https://img.shields.io/badge/OS-Windows%20%7C%20macOS%20%7C%20Linux-informational)
+
+**Author:** Dr. Sanjay Anbu · **Website:** https://sanjaydoc.github.io/De-Novo-LLM/ ·
+**Run guide:** [RUN.md](RUN.md) · **Model guide:** [docs/MODELS.md](docs/MODELS.md)
 
 Built to run on modest hardware (developed against an **RTX 3000, 6GB VRAM**):
-tiny models fine-tune fully, larger ones via **LoRA / 4-bit QLoRA**.
+tiny models fine-tune fully, larger ones via **LoRA / 4-bit QLoRA**. Ships a
+**Bayesian hyperparameter optimizer** (Optuna/TPE) and a **benchmarking +
+figure pipeline** for the project website.
+
+Cross-platform commands (Windows / macOS / Linux) are in **[RUN.md](RUN.md)**.
 
 ## Why a registry?
 
@@ -55,6 +69,18 @@ denovo evaluate -c configs/small_molecule.yaml -i generated/mols.txt
 
 # ...or all four at once:
 denovo pipeline -c configs/small_molecule.yaml -i data/your_smiles.txt
+```
+
+### Bayesian hyperparameter optimization
+
+Tune decoding hyperparameters against the quality metrics with Optuna's TPE
+(Bayesian) sampler — no retraining needed:
+
+```bash
+denovo optimize -c configs/progen2_protein.yaml \
+    --mode sampling -m outputs/progen2_small --trials 25 \
+    -o docs/results/bo_study.json
+python scripts/make_figures.py --study docs/results/bo_study.json
 ```
 
 Inspect what a config resolves to:
@@ -131,10 +157,26 @@ tests/              unit tests for the modality-agnostic core
 
 - [x] Modular modality registry (molecules / proteins / nucleic acids)
 - [x] Fine-tune (full / LoRA / QLoRA), generate, evaluate
+- [x] Bayesian hyperparameter optimization (Optuna / TPE)
+- [x] Benchmarking + figure pipeline and GitHub Pages website
 - [ ] Property-conditioned generation (logP, QED, target binding)
 - [ ] Adapters for SDK-based giants (ESM-3, Evo 2) + NVIDIA NIM inference
+- [ ] SE(3)-equivariant structure track (RFdiffusion → ProteinMPNN) for 3D de novo design
 - [ ] Scaffold / target-constrained decoding
+
+## Author & citation
+
+**Dr. Sanjay Anbu** — [github.com/sanjaydoc/De-Novo-LLM](https://github.com/sanjaydoc/De-Novo-LLM)
+
+```bibtex
+@software{anbu_denovo_llm_2026,
+  author = {Sanjay Anbu},
+  title  = {De-Novo-LLM: Fine-tuning language models for de novo biomolecule generation},
+  year   = {2026},
+  url    = {https://github.com/sanjaydoc/De-Novo-LLM}
+}
+```
 
 ## License
 
-MIT
+Released under the [MIT License](LICENSE) © 2026 Dr. Sanjay Anbu.

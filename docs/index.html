@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>De-Novo-LLM · Generative biomolecule design</title>
+<meta name="description" content="A modular framework for de novo biomolecule generation by fine-tuning language models — small molecules, proteins, and nucleic acids. By Dr. Sanjay Anbu." />
+<style>
+  :root{
+    --ink:#0f172a; --muted:#475569; --line:#e2e8f0; --bg:#ffffff; --soft:#f8fafc;
+    --primary:#2563eb; --accent:#059669; --violet:#7c3aed; --amber:#d97706;
+    --radius:14px; --maxw:1080px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--bg);line-height:1.6}
+  a{color:var(--primary);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+  code,pre{font-family:var(--mono)}
+
+  /* Nav */
+  header.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .brand{font-weight:800;letter-spacing:-.02em;font-size:18px;color:var(--ink)}
+  .brand span{color:var(--primary)}
+  .nav nav{display:flex;gap:22px;align-items:center}
+  .nav nav a{color:var(--muted);font-size:14px;font-weight:500}
+  .nav nav a:hover{color:var(--ink);text-decoration:none}
+  .btn{display:inline-block;background:var(--primary);color:#fff;padding:9px 16px;
+    border-radius:10px;font-weight:600;font-size:14px}
+  .btn:hover{background:#1d4ed8;text-decoration:none}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  @media(max-width:720px){.nav nav a:not(.btn){display:none}}
+
+  /* Hero */
+  .hero{padding:76px 0 56px;background:
+     radial-gradient(1100px 400px at 15% -10%, #dbeafe 0, transparent 60%),
+     radial-gradient(900px 380px at 90% 0%, #d1fae5 0, transparent 55%)}
+  .eyebrow{display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--primary);background:#eff6ff;border:1px solid #dbeafe;
+    padding:5px 12px;border-radius:999px;margin-bottom:18px}
+  h1{font-size:clamp(34px,5.2vw,54px);line-height:1.06;letter-spacing:-.03em;margin:.1em 0 .35em}
+  h1 .grad{background:linear-gradient(90deg,var(--primary),var(--violet));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{font-size:19px;color:var(--muted);max-width:640px}
+  .cta{margin-top:28px;display:flex;gap:12px;flex-wrap:wrap}
+  .authorline{margin-top:22px;font-size:14.5px;color:var(--muted)}
+  .authorline b{color:var(--ink)}
+  .badges{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
+  .badge{font-size:12px;font-weight:600;color:var(--muted);background:var(--soft);
+    border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  h2{font-size:29px;letter-spacing:-.02em;margin:0 0 8px}
+  .sub{color:var(--muted);margin:0 0 30px;max-width:680px}
+
+  .grid{display:grid;gap:18px}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .cols-2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:840px){.cols-3,.cols-2{grid-template-columns:1fr}}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;transition:.15s}
+  .card:hover{border-color:#cbd5e1;box-shadow:0 8px 24px -14px rgba(15,23,42,.2)}
+  .card .ic{font-size:22px}
+  .card h3{margin:.5em 0 .3em;font-size:17px}
+  .card p{margin:0;color:var(--muted);font-size:14.5px}
+
+  /* Tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:0;flex-wrap:wrap}
+  .tab{padding:8px 16px;border:1px solid var(--line);border-bottom:none;
+    border-radius:10px 10px 0 0;background:var(--soft);cursor:pointer;font-weight:600;
+    font-size:14px;color:var(--muted)}
+  .tab.active{background:#0f172a;color:#fff;border-color:#0f172a}
+  pre{background:#0f172a;color:#e2e8f0;padding:18px 18px;border-radius:0 12px 12px 12px;
+    overflow-x:auto;margin:0;font-size:13.5px;line-height:1.7}
+  pre .c{color:#64748b}
+  pre .k{color:#7dd3fc}
+  .panel{display:none}
+  .panel.active{display:block}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;overflow:hidden;
+    border:1px solid var(--line);border-radius:12px}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line)}
+  th{background:var(--soft);font-weight:700;font-size:12.5px;text-transform:uppercase;
+    letter-spacing:.03em;color:var(--muted)}
+  tr:last-child td{border-bottom:none}
+  td .ok{color:var(--accent);font-weight:700}
+  td .no{color:#dc2626;font-weight:700}
+  .scroll{overflow-x:auto}
+
+  figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff}
+  figure img{display:block;width:100%;height:auto}
+  figcaption{padding:12px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);background:var(--soft)}
+
+  .note{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px 16px;
+    font-size:14px;color:#92400e}
+  .callout{background:#eff6ff;border:1px solid #dbeafe;border-radius:12px;padding:16px 18px}
+
+  footer{border-top:1px solid var(--line);padding:40px 0;color:var(--muted);font-size:14px}
+  footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <div class="brand">De&#8209;Novo&#8209;<span>LLM</span></div>
+    <nav>
+      <a href="#features">Overview</a>
+      <a href="#start">Quickstart</a>
+      <a href="#models">Models</a>
+      <a href="#benchmarks">Benchmarks</a>
+      <a href="#bo">Bayesian Opt.</a>
+      <a class="btn" href="https://github.com/sanjaydoc/De-Novo-LLM">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Generative AI for molecular design</span>
+    <h1>Design <span class="grad">de novo biomolecules</span><br/>with fine&#8209;tuned language models</h1>
+    <p class="lede">One modular, config-driven pipeline to fine-tune, generate, benchmark and
+      Bayesian-optimize generative models for <b>small molecules</b>, <b>proteins &amp; peptides</b>,
+      and <b>nucleic acids</b> — engineered to run on a 6&nbsp;GB laptop GPU.</p>
+    <div class="cta">
+      <a class="btn" href="#start">Get started</a>
+      <a class="btn ghost" href="https://github.com/sanjaydoc/De-Novo-LLM">View on GitHub →</a>
+    </div>
+    <div class="badges">
+      <span class="badge">Python 3.9+</span>
+      <span class="badge">PyTorch · Transformers · PEFT</span>
+      <span class="badge">LoRA / QLoRA</span>
+      <span class="badge">Optuna Bayesian Opt.</span>
+      <span class="badge">MIT License</span>
+    </div>
+    <p class="authorline">Author: <b>Dr. Sanjay Anbu</b> · Windows · macOS · Linux</p>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <h2>What it does</h2>
+    <p class="sub">A single modality registry drives everything — add a biomolecule type in a few
+      lines and the entire train → generate → evaluate → optimize flow just works.</p>
+    <div class="grid cols-3">
+      <div class="card"><div class="ic">🧬</div><h3>Multi-modality</h3>
+        <p>SMILES / SELFIES molecules, protein &amp; peptide sequences, and DNA/RNA — one framework, one CLI.</p></div>
+      <div class="card"><div class="ic">🎛️</div><h3>Fine-tune anything</h3>
+        <p>Full fine-tune, LoRA, or 4-bit QLoRA on any Hugging Face causal LM. Defaults tuned for 6&nbsp;GB VRAM.</p></div>
+      <div class="card"><div class="ic">📊</div><h3>Standard metrics</h3>
+        <p>Validity, uniqueness, novelty and diversity — the field-standard de novo benchmark, reported automatically.</p></div>
+      <div class="card"><div class="ic">🔭</div><h3>Bayesian optimization</h3>
+        <p>Optuna (TPE) tunes sampling &amp; training hyperparameters to maximize quality with a small trial budget.</p></div>
+      <div class="card"><div class="ic">⚙️</div><h3>Config-driven</h3>
+        <p>One short YAML fully describes a run. Ready-made configs for ProGen2, GPT2-ZINC, ProtGPT2 and more.</p></div>
+      <div class="card"><div class="ic">💻</div><h3>Runs on your laptop</h3>
+        <p>Built and documented for an RTX 3000 (6&nbsp;GB). Cross-platform commands for Windows, macOS &amp; Linux.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICKSTART -->
+<section id="start">
+  <div class="wrap">
+    <h2>Quickstart</h2>
+    <p class="sub">Install, run the CPU smoke test to validate your setup, then fine-tune ProGen2 on your GPU.</p>
+    <div class="tabs">
+      <div class="tab active" data-os="linux">Linux</div>
+      <div class="tab" data-os="mac">macOS</div>
+      <div class="tab" data-os="win">Windows (PowerShell)</div>
+    </div>
+
+    <div class="panel active" data-os="linux">
+<pre><span class="c"># 1. Environment</span>
+python3 -m venv .venv <span class="k">&amp;&amp;</span> source .venv/bin/activate
+
+<span class="c"># 2. GPU PyTorch (RTX 3000 / CUDA 12.1), then the package</span>
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+pip install -e ".[chem]"          <span class="c"># adds RDKit + SELFIES</span>
+
+<span class="c"># 3. Validate the pipeline on CPU (~1 min)</span>
+denovo pipeline -c configs/smoke.yaml
+
+<span class="c"># 4. Fine-tune ProGen2 on your GPU</span>
+denovo train    -c configs/progen2_protein.yaml
+denovo generate -c configs/progen2_protein.yaml -n 500 -o generated/prot.txt
+denovo evaluate -c configs/progen2_protein.yaml -i generated/prot.txt</pre>
+    </div>
+
+    <div class="panel" data-os="mac">
+<pre><span class="c"># 1. Environment</span>
+python3 -m venv .venv <span class="k">&amp;&amp;</span> source .venv/bin/activate
+
+<span class="c"># 2. PyTorch (Apple Silicon uses the MPS backend automatically)</span>
+pip install torch
+pip install -e ".[chem]"
+
+<span class="c"># 3. Validate on CPU/MPS</span>
+denovo pipeline -c configs/smoke.yaml
+
+<span class="c"># 4. Fine-tune (set train.fp16:false on Mac — use MPS defaults)</span>
+denovo train    -c configs/progen2_protein.yaml</pre>
+    </div>
+
+    <div class="panel" data-os="win">
+<pre><span class="c"># 1. Environment (PowerShell)</span>
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
+
+<span class="c"># 2. GPU PyTorch (RTX 3000 / CUDA 12.1), then the package</span>
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+pip install -e ".[chem]"
+
+<span class="c"># 3. Validate the pipeline (~1 min)</span>
+denovo pipeline -c configs/smoke.yaml
+
+<span class="c"># 4. Fine-tune ProGen2 on your GPU</span>
+denovo train    -c configs/progen2_protein.yaml
+denovo generate -c configs/progen2_protein.yaml -n 500 -o generated/prot.txt</pre>
+    </div>
+
+    <p style="margin-top:18px" class="callout">📖 Full platform-by-platform setup, GPU tips and troubleshooting live in
+      <a href="https://github.com/sanjaydoc/De-Novo-LLM/blob/main/RUN.md"><code>RUN.md</code></a>.</p>
+  </div>
+</section>
+
+<!-- MODELS -->
+<section id="models">
+  <div class="wrap">
+    <h2>Choosing a model</h2>
+    <p class="sub">On a 6&nbsp;GB GPU, the recommended de novo model is <b>ProGen2-small</b>. The
+      heavyweight foundation models (Evo&nbsp;2, ESM-3) are best used via NVIDIA NIM / cloud.</p>
+    <div class="scroll">
+    <table>
+      <thead><tr><th>Model</th><th>Modality</th><th>Params</th><th>Regime</th><th>Fits 6&nbsp;GB?</th></tr></thead>
+      <tbody>
+        <tr><td><b>ProGen2-small</b> ⭐</td><td>Protein / peptide</td><td>151M</td><td>Full fine-tune</td><td class="ok">Yes</td></tr>
+        <tr><td>ProtGPT2</td><td>Protein</td><td>738M</td><td>4-bit QLoRA</td><td class="ok">Yes</td></tr>
+        <tr><td>GPT2-ZINC</td><td>Small molecules (SMILES)</td><td>87M</td><td>Full fine-tune</td><td class="ok">Yes</td></tr>
+        <tr><td>ChemGPT-4.7M</td><td>Small molecules (SELFIES)</td><td>4.7M</td><td>Full fine-tune</td><td class="ok">Yes</td></tr>
+        <tr><td>GPT2 char-level</td><td>DNA / RNA</td><td>124M</td><td>Full / LoRA</td><td class="ok">Yes</td></tr>
+        <tr><td>BioMistral-7B</td><td>Biomedical text</td><td>7B</td><td>4-bit QLoRA</td><td class="no">Tight</td></tr>
+        <tr><td>ESM-3 / Evo&nbsp;2</td><td>Protein / DNA</td><td>1.4B–40B</td><td>Cloud / NVIDIA NIM</td><td class="no">No</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="margin-top:16px;color:var(--muted);font-size:14px">Full feasibility analysis and NVIDIA NIM notes:
+      <a href="https://github.com/sanjaydoc/De-Novo-LLM/blob/main/docs/MODELS.md"><code>docs/MODELS.md</code></a>.</p>
+  </div>
+</section>
+
+<!-- BENCHMARKS -->
+<section id="benchmarks">
+  <div class="wrap">
+    <h2>Benchmarks &amp; results</h2>
+    <p class="sub">Every generation run is scored on the four standard de novo metrics. The figures below
+      are produced by <code>scripts/benchmark.py</code> and <code>scripts/make_figures.py</code>.</p>
+    <p class="note">The charts shown here are <b>illustrative placeholders</b> until you run training on your
+      own data — regenerate them with real numbers using the scripts. They are watermarked accordingly.</p>
+    <div class="grid cols-2" style="margin-top:22px">
+      <figure>
+        <img src="assets/benchmark.png" alt="Benchmark comparison of models" />
+        <figcaption>Validity, uniqueness and novelty across candidate models.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/training_loss.png" alt="Training loss curve" />
+        <figcaption>Fine-tuning train/eval cross-entropy loss (ProGen2-small).</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- BAYESIAN OPTIMIZATION -->
+<section id="bo">
+  <div class="wrap">
+    <h2>Bayesian optimization</h2>
+    <p class="sub">Sampling and training hyperparameters are tuned with Optuna's TPE sampler — a Bayesian
+      method that finds strong settings in far fewer trials than grid or random search.</p>
+<pre style="border-radius:12px;margin-bottom:24px"><span class="c"># Optimize decoding hyperparameters against validity + novelty + diversity</span>
+denovo optimize -c configs/progen2_protein.yaml \
+    --mode sampling -m outputs/progen2_small --trials 25 \
+    -o docs/results/bo_study.json
+
+<span class="c"># Render the graphs below from the study</span>
+python scripts/make_figures.py --study docs/results/bo_study.json</pre>
+    <div class="grid cols-2">
+      <figure>
+        <img src="assets/bo_convergence.png" alt="Bayesian optimization convergence" />
+        <figcaption>Best objective value improving over trials (TPE convergence).</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/bo_landscape.png" alt="Objective landscape" />
+        <figcaption>Objective surface over temperature × top-p, with evaluated points and the optimum.</figcaption>
+      </figure>
+    </div>
+    <figure style="margin-top:18px;max-width:640px">
+      <img src="assets/bo_importance.png" alt="Hyperparameter importance" />
+      <figcaption>Relative importance of each sampling hyperparameter.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- CITATION -->
+<section id="cite">
+  <div class="wrap">
+    <h2>Citation</h2>
+    <p class="sub">If this project supports your research, please cite it.</p>
+<pre style="border-radius:12px">@software{anbu_denovo_llm_2026,
+  author  = {Sanjay Anbu},
+  title   = {De-Novo-LLM: Fine-tuning language models for de novo biomolecule generation},
+  year    = {2026},
+  url     = {https://github.com/sanjaydoc/De-Novo-LLM}
+}</pre>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 <b>Dr. Sanjay Anbu</b> · Released under the MIT License.</div>
+    <div><a href="https://github.com/sanjaydoc/De-Novo-LLM">GitHub</a> · <a href="#start">Quickstart</a> · <a href="https://github.com/sanjaydoc/De-Novo-LLM/blob/main/docs/MODELS.md">Model guide</a></div>
+  </div>
+</footer>
+
+<script>
+  // OS quickstart tabs
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      var os = tab.getAttribute('data-os');
+      document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active', t.getAttribute('data-os')===os);});
+      document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('active', p.getAttribute('data-os')===os);});
+    });
+  });
+</script>
+</body>
+</html>

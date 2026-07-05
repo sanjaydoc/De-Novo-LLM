@@ -127,6 +127,28 @@ def cmd_evaluate(args) -> None:
         print(f"\nMetrics written to {args.output}")
 
 
+def cmd_optimize(args) -> None:
+    """Bayesian (TPE) hyperparameter optimization over quality metrics."""
+    from denovo.optimize import ObjectiveWeights, optimize
+
+    cfg = _load(args)
+    result = optimize(
+        cfg,
+        mode=args.mode,
+        model_path=args.model or cfg.train.output_dir,
+        n_trials=args.trials,
+        eval_samples=args.eval_samples,
+        weights=ObjectiveWeights(),
+    )
+    print(f"\nBest score: {result.best_score:.4f}")
+    print("Best hyperparameters:")
+    print(json.dumps(result.best_params, indent=2))
+    out = args.output or os.path.join(cfg.train.output_dir, "bo_study.json")
+    result.save(out)
+    print(f"\nStudy saved to {out}")
+    print("Render figures with:  python scripts/make_figures.py --study " + out)
+
+
 def cmd_pipeline(args) -> None:
     """End-to-end: prepare -> train -> generate -> evaluate."""
     from denovo.data import prepare_dataset, read_sequences
@@ -213,6 +235,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--input", "-i", required=True, help="File of generated seqs.")
     sp.add_argument("--output", "-o", help="Write metrics JSON here.")
     sp.set_defaults(func=cmd_evaluate)
+
+    sp = sub.add_parser("optimize", help="Bayesian (TPE) hyperparameter search.")
+    add_config(sp)
+    sp.add_argument("--mode", choices=["sampling", "training"], default="sampling")
+    sp.add_argument("--model", "-m", help="Trained checkpoint (sampling mode).")
+    sp.add_argument("--trials", "-t", type=int, default=25)
+    sp.add_argument("--eval-samples", type=int, default=200)
+    sp.add_argument("--output", "-o", help="Where to write the study JSON.")
+    sp.set_defaults(func=cmd_optimize)
 
     sp = sub.add_parser("pipeline", help="prepare -> train -> generate -> evaluate.")
     add_config(sp)
