@@ -102,7 +102,7 @@ denovo pipeline -c configs/smoke_local.yaml
 python scripts/closed_loop_demo.py
 
 # Tests
-python -m pytest        # 26 passing
+python -m pytest        # 28 passing
 ```
 
 > **RDKit note:** RDKit is optional. On some locked-down Windows machines its
@@ -186,6 +186,24 @@ Properties: `logp`, `qed`, `mw`, `tpsa`, `hbd`, `hba`, `rings`, `rotbonds`. The
 command reports the property distribution before vs after steering. Under the
 hood the objective is the same interface the closed-loop backbone optimizes, so
 the property can drive the full DBTL loop too.
+
+### Scaffold-constrained generation
+
+Generate molecules that **contain a required substructure** (a scaffold or
+core), matched with RDKit — optionally ranked by a property at the same time:
+
+```bash
+# Molecules containing a benzene ring
+denovo scaffold -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+    --scaffold "c1ccccc1" -n 100 --oversample 20 -o generated/aromatic.txt
+
+# Molecules containing a sulfonamide core, ranked by QED
+denovo scaffold -c configs/molecule_benchmark.yaml -m entropy/gpt2_zinc_87m \
+    --scaffold "S(=O)(=O)N" --smarts --property qed --mode max -n 100
+```
+
+Reports the **constraint-satisfaction rate** (fraction of valid molecules that
+contain the scaffold). Pass `--smarts` to use a SMARTS query instead of SMILES.
 
 Inspect what a config resolves to:
 
@@ -308,7 +326,7 @@ tests/              unit tests (core, structure equivariance, closed loop)
 - ✅ Benchmarking + figure pipeline and GitHub Pages website
 - ✅ Property-conditioned generation (logP, QED, MW … via RDKit objectives)
 - ⬜ Adapters for SDK-based giants (ESM-3, Evo 2) + NVIDIA NIM inference
-- ⬜ Scaffold / target-constrained decoding
+- ✅ Scaffold / substructure-constrained decoding (RDKit substructure filter)
 
 ## Author & citation
 
@@ -316,7 +334,7 @@ tests/              unit tests (core, structure equivariance, closed loop)
 
 ```bibtex
 @software{anbu_denovo_llm_2026,
-  author = {Sanjay Anbu},
+  author = {Dr. Sanjay Anbu},
   title  = {De-Novo-LLM: Fine-tuning language models for de novo biomolecule generation},
   year   = {2026},
   url    = {https://github.com/sanjaydoc/De-Novo-LLM}

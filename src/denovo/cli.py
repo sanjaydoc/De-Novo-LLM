@@ -159,6 +159,34 @@ def cmd_condition(args) -> None:
         print(f"\nWrote {len(result.selected)} molecules (+values) to {args.output}")
 
 
+def cmd_scaffold(args) -> None:
+    """Scaffold-constrained generation: keep molecules containing a substructure."""
+    from denovo.properties import build_objective
+    from denovo.scaffold import scaffold_generate
+
+    cfg = _load(args)
+    if args.num:
+        cfg.generate.num_samples = args.num
+    objective = None
+    if args.property:
+        objective = build_objective(args.property, mode=args.mode, target=args.target)
+    model_path = args.model or cfg.train.output_dir
+    result = scaffold_generate(
+        model_path, cfg.generate, args.scaffold,
+        is_smarts=args.smarts, modality_name=cfg.data.modality,
+        objective=objective, oversample=args.oversample,
+        trust_remote_code=cfg.model.trust_remote_code,
+    )
+    print("Scaffold-constrained generation:")
+    print(result.summary(args.scaffold, objective))
+    if args.output:
+        os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
+        with open(args.output, "w", encoding="utf-8") as fh:
+            for smi, val in result.matches:
+                fh.write(smi + (f"\t{val:.4f}" if val is not None else "") + "\n")
+        print(f"\nWrote {len(result.matches)} molecules to {args.output}")
+
+
 def cmd_optimize(args) -> None:
     """Bayesian (TPE) hyperparameter optimization over quality metrics."""
     from denovo.optimize import ObjectiveWeights, optimize
@@ -281,6 +309,19 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--model", "-m", help="Checkpoint / HF id.")
     sp.add_argument("--output", "-o", help="Write 'smiles<TAB>value' lines here.")
     sp.set_defaults(func=cmd_condition)
+
+    sp = sub.add_parser("scaffold", help="Scaffold/substructure-constrained generation.")
+    add_config(sp)
+    sp.add_argument("--scaffold", "-s", required=True, help="Scaffold SMILES (or SMARTS with --smarts).")
+    sp.add_argument("--smarts", action="store_true", help="Treat --scaffold as SMARTS.")
+    sp.add_argument("--property", "-p", help="Optionally rank matches by this property.")
+    sp.add_argument("--mode", choices=["max", "min", "target"], default="max")
+    sp.add_argument("--target", type=float)
+    sp.add_argument("--num", "-n", type=int, help="Molecules to keep.")
+    sp.add_argument("--oversample", type=int, default=20)
+    sp.add_argument("--model", "-m", help="Checkpoint / HF id.")
+    sp.add_argument("--output", "-o", help="Write matches here.")
+    sp.set_defaults(func=cmd_scaffold)
 
     sp = sub.add_parser("optimize", help="Bayesian (TPE) hyperparameter search.")
     add_config(sp)
